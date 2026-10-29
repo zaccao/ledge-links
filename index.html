@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ledge Link Generator</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -62,7 +63,17 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
 .list .meta { font-size: 12px; color: var(--muted); grid-column: 1 }
 .list button { grid-row: 1 / span 2; grid-column: 2 }
 .empty { color: var(--muted); font-size: 14px; margin: 0 }
-@media (max-width: 420px) { .row { grid-template-columns: 1fr } }
+@media (max-width: 420px) {
+  body { padding-block: 16px 40px }
+  main { gap: 16px }
+  .row { grid-template-columns: 1fr }
+  .panel { padding: 14px; gap: 14px }
+  input, select { font-size: 16px; padding: 12px }
+  .seg button { padding: 10px 14px }
+  .copy { padding: 14px; font-size: 16px }
+  .parts { display: none }
+  .intro { font-size: 14px }
+}
 @media (prefers-reduced-motion: reduce) { * { transition: none !important } }
 </style>
 
@@ -87,13 +98,13 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
     </div>
     <div class="field">
       <label for="o-dest">ledge.eu page</label>
-      <input id="o-dest" inputmode="url" autocomplete="off" placeholder="https://ledge.eu/product/merino-cardigan" value="https://ledge.eu/product/merino-cardigan">
+      <input id="o-dest" inputmode="url" autocomplete="off" type="url" placeholder="https://ledge.eu/product/…">
       <p class="hint">Product, brand or category page. Leave the shop root for general links.</p>
     </div>
     <div class="row">
       <div class="field">
         <label for="o-theme">Theme</label>
-        <input id="o-theme" autocomplete="off" placeholder="nordic_knit_cardigan" value="knitwear">
+        <input id="o-theme" autocomplete="off" autocapitalize="none" placeholder="e.g. nordic_knit_cardigan">
       </div>
       <div class="field" id="o-day-wrap">
         <label for="o-day">Story day</label>
@@ -229,7 +240,7 @@ function renderOrganic() {
   const d = destination($("o-dest").value);
   const t = theme($("o-theme").value), { mm, yyyy } = monthParts($("o-month").value);
   const problems = [...d.problems];
-  if (!t) problems.push("Add a short theme, e.g. knitwear or gifts.");
+  if (!t) problems.push(kind === "bio" ? "Add a short theme, e.g. launch or gifts." : "Add the theme: the brand and/or product this Story shows.");
   if (kind === "bio" ? !mm : !day) problems.push(kind === "bio" ? "Pick the month." : "Pick the day the Story goes live.");
   const ddmm = day.slice(8, 10) + day.slice(5, 7);
   const content = kind === "bio" ? "bio_" + (snake($("o-purpose").value) || "webstore") : `story_${d.slug || "shop"}_${ddmm}`;
