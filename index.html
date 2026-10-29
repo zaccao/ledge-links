@@ -1,0 +1,338 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ledge Link Generator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow working column, phone first; tool on top, saved links below. */
+:root {
+  --bg: #f4f5f2; --surface: #ffffff; --fg: #1b1f1c; --muted: #5d665f; --line: #dfe3dc;
+  --accent: #1f5c4a; --accent-fg: #ffffff; --accent-soft: #e3eee9; --warn: #9a4b12; --warn-soft: #fbeedf;
+  --ok: #24704f;
+  --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #131614; --surface: #1b1f1c; --fg: #e8ebe6; --muted: #9aa49c; --line: #2c322e;
+  --accent: #6fbf9f; --accent-fg: #0f1411; --accent-soft: #1f2d27; --warn: #f0a868; --warn-soft: #33261a; --ok: #7ccaa5;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #131614; --surface: #1b1f1c; --fg: #e8ebe6; --muted: #9aa49c; --line: #2c322e;
+  --accent: #6fbf9f; --accent-fg: #0f1411; --accent-soft: #1f2d27; --warn: #f0a868; --warn-soft: #33261a; --ok: #7ccaa5;
+  color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px }
+main { max-width: 560px; margin: 0 auto; display: grid; gap: 20px }
+h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -0.01em; text-wrap: balance }
+h1 span { color: var(--muted); font-weight: 400 }
+.intro { color: var(--muted); margin: 4px 0 0 }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--line); padding: 4px; border-radius: 10px }
+.tabs button { font: inherit; font-weight: 500; border: 0; padding: 10px; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--fg) }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 16px }
+.field { display: grid; gap: 6px; min-width: 0 }
+label, .label { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted) }
+.hint { font-size: 13px; color: var(--muted); margin: 0 }
+input, select { font: inherit; width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg) }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+.seg { display: flex; flex-wrap: wrap; gap: 6px }
+.seg button, .chip { font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent) }
+.chips { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { font-size: 13px; padding: 4px 10px; font-family: var(--mono) }
+.out { display: grid; gap: 10px; background: var(--accent-soft); border-radius: 10px; padding: 14px }
+.out code { font: 13px/1.45 var(--mono); word-break: break-all; color: var(--fg) }
+.out .name { font: 500 16px var(--mono); word-break: break-all }
+.copy { font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 12px; background: var(--accent); color: var(--accent-fg); cursor: pointer }
+.copy:disabled { opacity: 0.45; cursor: not-allowed }
+.copy.small { padding: 8px 12px; font-size: 14px }
+.status { font-size: 13px; color: var(--ok); min-height: 1.2em; margin: 0 }
+.problems { margin: 0; padding: 10px 12px 10px 28px; background: var(--warn-soft); color: var(--warn); border-radius: 8px; font-size: 14px }
+.parts { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font: 12px/1.6 var(--mono); color: var(--muted); margin: 0 }
+.parts dd { margin: 0; color: var(--fg); word-break: break-all }
+.check { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; color: var(--muted) }
+.recent { display: grid; gap: 10px }
+.recent h2 { font-size: 15px; font-weight: 600; margin: 0 }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
+.list li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; min-width: 0 }
+.list .what { font: 13px var(--mono); word-break: break-all; min-width: 0 }
+.list .meta { font-size: 12px; color: var(--muted); grid-column: 1 }
+.list button { grid-row: 1 / span 2; grid-column: 2 }
+.empty { color: var(--muted); font-size: 14px; margin: 0 }
+@media (max-width: 420px) { .row { grid-template-columns: 1fr } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+</style>
+
+<main>
+  <header>
+    <h1>ledge links <span>· UTM rulebook</span></h1>
+    <p class="intro">Paste a ledge.eu page, fill in two fields, copy. Every link follows the UTM Tagging Convention and is saved to the link list below.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button id="tab-organic" role="tab" aria-selected="true" aria-controls="organic">Story &amp; bio</button>
+    <button id="tab-paid" role="tab" aria-selected="false" aria-controls="paid">Paid campaign</button>
+  </div>
+
+  <section class="panel" id="organic" role="tabpanel" aria-labelledby="tab-organic">
+    <div class="field">
+      <span class="label">Where does the link go?</span>
+      <div class="seg" id="o-kind">
+        <button type="button" data-v="story" aria-pressed="true">Instagram Story</button>
+        <button type="button" data-v="bio" aria-pressed="false">Instagram bio</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="o-dest">ledge.eu page</label>
+      <input id="o-dest" inputmode="url" autocomplete="off" placeholder="https://ledge.eu/product/merino-cardigan" value="https://ledge.eu/product/merino-cardigan">
+      <p class="hint">Product, brand or category page. Leave the shop root for general links.</p>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="o-theme">Theme</label>
+        <input id="o-theme" autocomplete="off" placeholder="nordic_knit_cardigan" value="knitwear">
+      </div>
+      <div class="field" id="o-day-wrap">
+        <label for="o-day">Story day</label>
+        <input id="o-day" type="date">
+      </div>
+      <div class="field" id="o-month-wrap" hidden>
+        <label for="o-month">Month</label>
+        <input id="o-month" type="month">
+      </div>
+    </div>
+    <p class="hint" id="o-theme-hint">Be specific about this Story: the brand and/or product it shows, e.g. <em>nordic_knit_cardigan</em>. Two Stories on the same day need different themes.</p>
+    <div class="chips" id="o-themes" aria-label="Themes used this month"></div>
+    <div class="field" id="o-purpose-wrap" hidden>
+      <label for="o-purpose">Bio link purpose</label>
+      <input id="o-purpose" autocomplete="off" value="webstore">
+      <p class="hint">Change it only when the bio points somewhere new (e.g. webstore → gifts).</p>
+    </div>
+    <ul class="problems" id="o-problems" hidden></ul>
+    <div class="out">
+      <span class="label">Link to paste</span>
+      <code id="o-url"></code>
+      <dl class="parts" id="o-parts"></dl>
+      <button class="copy" id="o-copy" type="button">Copy link</button>
+      <p class="status" id="o-status" role="status"></p>
+    </div>
+  </section>
+
+  <section class="panel" id="paid" role="tabpanel" aria-labelledby="tab-paid" hidden>
+    <div class="field">
+      <span class="label">Stage</span>
+      <div class="seg" id="p-stage">
+        <button type="button" data-v="reach" aria-pressed="false">reach · first contact</button>
+        <button type="button" data-v="pro" aria-pressed="true">pro · prospecting</button>
+        <button type="button" data-v="rt" aria-pressed="false">rt · remarketing</button>
+        <button type="button" data-v="pa" aria-pressed="false">pa · partnership</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="p-theme">Theme</label>
+        <input id="p-theme" autocomplete="off" value="gifts" placeholder="gifts, a brand for pa">
+      </div>
+      <div class="field">
+        <label for="p-month">Launch month</label>
+        <input id="p-month" type="month">
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="p-adset">Ad set = audience</label>
+        <input id="p-adset" autocomplete="off" value="women_25_45_de">
+      </div>
+      <div class="field">
+        <label for="p-ad">Ad = creative + variant</label>
+        <input id="p-ad" autocomplete="off" value="croissant_cup_video_a">
+      </div>
+    </div>
+    <div class="field">
+      <label for="p-dest">Website URL (ad level)</label>
+      <input id="p-dest" inputmode="url" autocomplete="off" value="https://ledge.eu/">
+    </div>
+    <ul class="problems" id="p-problems" hidden></ul>
+    <div class="out">
+      <span class="label">Campaign name</span>
+      <span class="name" id="p-name"></span>
+      <button class="copy small" id="p-copy-name" type="button">Copy campaign name</button>
+      <span class="label">Ad set name · ad name</span>
+      <code id="p-names"></code>
+      <span class="label">Website URL</span>
+      <code id="p-site"></code>
+      <span class="label">URL parameters (paste unchanged; Meta fills in the names)</span>
+      <code id="p-params"></code>
+      <button class="copy small" id="p-copy-params" type="button">Copy URL parameters</button>
+      <p class="status" id="p-status" role="status"></p>
+    </div>
+    <ol class="check">
+      <li>Campaign, ad set and ad names exactly as above. Never rename them while live.</li>
+      <li>Website URL without tags; URL parameters only in the parameters field.</li>
+      <li>After launch, open the ad once on a phone: the landing URL shows <code>utm_source=meta</code> and the campaign name.</li>
+    </ol>
+  </section>
+
+  <section class="recent">
+    <h2 id="r-title">Your recent links</h2>
+    <p class="empty" id="r-state">Links appear here once you copy one. They are kept in this browser only.</p>
+    <ul class="list" id="r-list"></ul>
+  </section>
+</main>
+
+<script>
+const META_PARAMS = "utm_source=meta&utm_medium=paid_social&utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}";
+const HOSTS = ["ledge.eu", "www.ledge.eu"];
+const $ = id => document.getElementById(id);
+const snake = s => (s || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+  .replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+const monthParts = v => { const [y, m] = (v || "").split("-"); return { mm: m, yyyy: y }; };
+
+function thisMonth() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
+$("o-month").value = thisMonth(); $("p-month").value = thisMonth();
+$("o-day").value = new Date().toLocaleDateString("sv");   // today, YYYY-MM-DD
+
+// A ledge.eu page without UTMs. Returns {url, slug, problems}.
+function destination(raw) {
+  const problems = []; let u;
+  try { u = new URL((raw || "").trim() || "https://ledge.eu/"); } catch { return { problems: ["That isn't a web address. Paste the page from the browser bar."] }; }
+  if (!HOSTS.includes(u.hostname)) problems.push("Links must go to a ledge.eu page.");
+  if (u.pathname.startsWith("/waitlist")) problems.push("The waitlist is closed. Link to the shop or a product instead.");
+  [...u.searchParams.keys()].filter(k => k.startsWith("utm_")).forEach(k => u.searchParams.delete(k));
+  u.hash = "";
+  const parts = u.pathname.split("/").filter(Boolean);
+  const slug = parts.length ? snake(parts[parts.length - 1]) : "shop";
+  return { url: u, slug, problems };
+}
+function withParams(u, params) {
+  const out = new URL(u.toString());
+  Object.entries(params).forEach(([k, v]) => out.searchParams.set(k, v));
+  return out.toString();
+}
+function theme(raw) { return snake(raw).replace(/_(0[1-9]|1[0-2])_20\d\d$/, ""); }
+function showProblems(el, list) { el.hidden = !list.length; el.innerHTML = ""; list.forEach(t => { const li = document.createElement("li"); li.textContent = t; el.append(li); }); }
+function pick(group, value) { group.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === value))); }
+const picked = group => group.querySelector('[aria-pressed="true"]').dataset.v;
+
+// ---- organic
+let organic = null;
+function renderOrganic() {
+  const kind = picked($("o-kind"));
+  $("o-purpose-wrap").hidden = kind !== "bio";
+  $("o-month-wrap").hidden = kind !== "bio";
+  $("o-day-wrap").hidden = $("o-theme-hint").hidden = kind === "bio";
+  const day = $("o-day").value;   // YYYY-MM-DD; a Story lives 24h, so the day tells Stories apart
+  if (kind === "story" && day) $("o-month").value = day.slice(0, 7);
+  const d = destination($("o-dest").value);
+  const t = theme($("o-theme").value), { mm, yyyy } = monthParts($("o-month").value);
+  const problems = [...d.problems];
+  if (!t) problems.push("Add a short theme, e.g. knitwear or gifts.");
+  if (kind === "bio" ? !mm : !day) problems.push(kind === "bio" ? "Pick the month." : "Pick the day the Story goes live.");
+  const ddmm = day.slice(8, 10) + day.slice(5, 7);
+  const content = kind === "bio" ? "bio_" + (snake($("o-purpose").value) || "webstore") : `story_${d.slug || "shop"}_${ddmm}`;
+  const params = { utm_source: "instagram", utm_medium: "organic_social", utm_campaign: `${t}_${mm}_${yyyy}`, utm_content: content };
+  showProblems($("o-problems"), problems);
+  organic = problems.length ? null : { kind, url: withParams(d.url, params), destination: d.url.toString(), ...params };
+  $("o-url").textContent = organic ? organic.url : "Fix the points above to get a link.";
+  $("o-parts").innerHTML = "";
+  if (organic) Object.entries(params).forEach(([k, v]) => { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; $("o-parts").append(dt, dd); });
+  $("o-copy").disabled = !organic;
+  $("o-status").textContent = "";
+}
+
+// ---- paid
+let paid = null;
+function renderPaid() {
+  const stage = picked($("p-stage")), t = theme($("p-theme").value), { mm, yyyy } = monthParts($("p-month").value);
+  const d = destination($("p-dest").value);
+  const adset = snake($("p-adset").value), ad = snake($("p-ad").value);
+  const problems = [...d.problems];
+  if (!t) problems.push("Add a theme: what the campaign is about, or the partner brand for pa.");
+  if (!adset) problems.push("Name the ad set after its audience, e.g. women_25_45_de.");
+  if (!ad) problems.push("Name the ad after its creative, e.g. croissant_cup_video_a.");
+  showProblems($("p-problems"), problems);
+  const name = `${stage}_${t}_${mm}_${yyyy}`;
+  paid = problems.length ? null : { kind: "paid", campaign: name, adset, ad, destination: d.url.toString(), url: withParams(d.url, { utm_source: "meta", utm_medium: "paid_social", utm_campaign: name, utm_term: adset, utm_content: ad }) };
+  $("p-name").textContent = t ? name : "…";
+  $("p-names").textContent = `${adset || "…"} · ${ad || "…"}`;
+  $("p-site").textContent = d.url ? d.url.toString() : "…";
+  $("p-params").textContent = META_PARAMS;
+  $("p-copy-name").disabled = $("p-copy-params").disabled = !paid;
+  $("p-status").textContent = "";
+}
+
+async function copy(text, statusEl, record, shownEl) {
+  try { await navigator.clipboard.writeText(text); statusEl.textContent = "Copied."; }
+  catch { const r = document.createRange(); r.selectNodeContents(shownEl); getSelection().removeAllRanges(); getSelection().addRange(r); statusEl.textContent = "Selected. Copy it with your keyboard or long-press."; }
+  if (record) save(record, statusEl);
+}
+
+// ---- shared link list (db capability) when opened in claude.ai; elsewhere a list kept in this browser only.
+let db = null, me = null, savedKeys = new Set();
+const LOCAL_KEY = "ledge-links", LOCAL_MAX = 30;
+function localLinks() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) || []; } catch { return []; } }
+function renderLocal() { renderList(localLinks().map(r => ({ data: () => r }))); }
+function saveLocal(rec, statusEl) {
+  const links = localLinks().filter(r => (rec.url || rec.campaign) !== (r.url || r.campaign));
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify([{ ...rec, created_at: new Date().toISOString() }, ...links].slice(0, LOCAL_MAX))); }
+  catch { return; }
+  statusEl.textContent += " Added to your recent links.";
+  renderLocal();
+}
+async function save(rec, statusEl) {
+  const key = rec.url;
+  if (!db) { saveLocal(rec, statusEl); return; }
+  if (savedKeys.has(key)) { statusEl.textContent += " Already in the list."; return; }
+  try {
+    savedKeys.add(key);
+    await db.collection("links").add({ ...rec, created_at: new Date().toISOString(), created_by: me, synced: false });
+    statusEl.textContent += " Saved to the link list.";
+  } catch (e) { savedKeys.delete(key); statusEl.textContent += " Not saved (" + (e && e.code || "error") + ")."; }
+}
+function renderList(docs) {
+  const list = $("r-list"); list.innerHTML = "";
+  $("r-state").textContent = docs.length ? "" : db ? "Links appear here once someone copies one." : "Links appear here once you copy one. They are kept in this browser only.";
+  $("r-state").hidden = !!docs.length;
+  const themes = new Set(), month = $("o-month").value.replace("-", "_").split("_").reverse().join("_");
+  docs.forEach(s => {
+    const r = s.data(); savedKeys.add(r.url);
+    const camp = r.utm_campaign || r.campaign || "";
+    if (r.kind !== "paid" && camp.endsWith(month)) themes.add(camp.slice(0, -month.length - 1));
+    const li = document.createElement("li");
+    const what = document.createElement("span"); what.className = "what";
+    what.textContent = r.kind === "paid" ? r.campaign : `${camp} · ${r.utm_content}`;
+    const meta = document.createElement("span"); meta.className = "meta";
+    meta.textContent = `${r.kind === "paid" ? "Paid campaign" : r.kind === "bio" ? "Bio" : "Story"} · ${new Date(r.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
+    const b = document.createElement("button"); b.className = "copy small"; b.type = "button"; b.textContent = "Copy";
+    b.addEventListener("click", () => navigator.clipboard.writeText(r.kind === "paid" ? r.campaign : r.url).then(() => { b.textContent = "Copied"; }, () => {}));
+    li.append(what, meta, b); list.append(li);
+  });
+  const chips = $("o-themes"); chips.innerHTML = "";
+  themes.forEach(t => { const c = document.createElement("button"); c.type = "button"; c.className = "chip"; c.textContent = t;
+    c.addEventListener("click", () => { $("o-theme").value = t; renderOrganic(); }); chips.append(c); });
+}
+
+// ---- wiring
+document.querySelectorAll('[role="tab"]').forEach(tab => tab.addEventListener("click", () => {
+  document.querySelectorAll('[role="tab"]').forEach(t => t.setAttribute("aria-selected", String(t === tab)));
+  $("organic").hidden = tab.id !== "tab-organic"; $("paid").hidden = tab.id !== "tab-paid";
+}));
+[$("o-kind"), $("p-stage")].forEach(g => g.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; pick(g, b.dataset.v); g === $("o-kind") ? renderOrganic() : renderPaid(); }));
+["o-dest", "o-theme", "o-day", "o-month", "o-purpose"].forEach(id => $(id).addEventListener("input", renderOrganic));
+["p-theme", "p-month", "p-adset", "p-ad", "p-dest"].forEach(id => $(id).addEventListener("input", renderPaid));
+$("o-copy").addEventListener("click", () => organic && copy(organic.url, $("o-status"), organic, $("o-url")));
+$("p-copy-name").addEventListener("click", () => paid && copy(paid.campaign, $("p-status"), paid, $("p-name")));
+$("p-copy-params").addEventListener("click", () => paid && copy(META_PARAMS, $("p-status"), null, $("p-params")));
+renderOrganic(); renderPaid(); renderLocal();
+
+(async () => {
+  if (!window.claude || !window.claude.use) return;
+  const [d, u] = await Promise.all([claude.use("db"), claude.use("user")]);
+  if (u) { try { me = await u.id(); } catch { me = null; } }
+  if (!d) return;
+  db = d; $("r-title").textContent = "Saved links";
+  db.collection("links").orderBy("created_at", "desc").limit(30).onSnapshot(s => renderList(s.docs), () => {});
+})();
+</script>
